@@ -1,0 +1,14 @@
+services:
+  3dpdf:
+    build:
+      context: .
+    container_name: 3dpdf
+    restart: unless-stopped
+    expose:
+      - "80"
+    networks:
+      - proxy_net
+
+networks:
+  proxy_net:
+    external: true
