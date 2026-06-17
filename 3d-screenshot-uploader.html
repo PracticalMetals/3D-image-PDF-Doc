@@ -479,7 +479,7 @@
           <polyline points="17 8 12 3 7 8"></polyline>
           <line x1="12" x2="12" y1="3" y2="15"></line>
         </svg>
-        <span><strong>Choose or drop a screenshot</strong><br>PNG, JPG, WEBP accepted.</span>
+        <span><strong>Choose, drop, or paste a screenshot</strong><br>PNG, JPG, WEBP — or press Ctrl+V anywhere.</span>
         <input class="file-input" id="fileInput" type="file" accept="image/*">
       </label>
 
@@ -571,6 +571,19 @@
     if (file) loadFile(file);
   });
   fileInput.addEventListener('change', () => { if (fileInput.files[0]) loadFile(fileInput.files[0]); });
+
+  // ── Clipboard paste (Ctrl+V) ─────────────────────────────────────────────
+  document.addEventListener('paste', e => {
+    const items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        loadFile(item.getAsFile());
+        break;
+      }
+    }
+  });
 
   // ── Job note live update ─────────────────────────────────────────────────
   jobNote.addEventListener('input', () => {
