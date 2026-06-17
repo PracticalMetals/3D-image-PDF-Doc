@@ -1,495 +1,814 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Practical Metals – 3D Roof Rendering PDF Generator</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Practical Metals – 3D Roof Rendering PDF</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     :root {
-      --navy:   #0d1f3c;
-      --steel:  #2563a8;
-      --silver: #8c9ab0;
-      --light:  #e8edf4;
-      --white:  #ffffff;
-      --gold:   #c8922a;
-      --text:   #1a2744;
+      color-scheme: light;
+      --black:       #080808;
+      --charcoal:    #181818;
+      --steel:       #4b5563;
+      --line:        #d7d7d7;
+      --paper:       #ffffff;
+      --field:       #f4f4f4;
+      --accent:      #4169e1;
+      --accent-dark: #2746a8;
+      --cream:       #f6f2ec;
+      --ink:         #141414;
+      --muted:       #666666;
+      --focus:       #7da0ff;
     }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; }
 
     body {
-      font-family: 'Segoe UI', Arial, sans-serif;
-      background: var(--light);
-      color: var(--text);
+      margin: 0;
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 40px 20px 60px;
+      background: var(--cream);
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
     }
 
-    /* ── Header ── */
-    .app-header {
-      width: 100%;
-      max-width: 760px;
+    button, input { font: inherit; }
+
+    /* ── Shell ─────────────────────────────────────────────────────────────── */
+    .app-shell {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    /* ── Top strip ─────────────────────────────────────────────────────────── */
+    .top-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      min-height: 36px;
+      padding: 8px 28px;
+      background: var(--black);
+      color: #f5f5f5;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .top-strip span { color: var(--accent); }
+
+    /* ── Nav ───────────────────────────────────────────────────────────────── */
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 16px 28px;
+      background: var(--paper);
+      border-bottom: 4px solid var(--accent);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      z-index: 2;
+    }
+
+    .brand { display: flex; align-items: center; min-width: 0; }
+
+    .brand-name { display: grid; gap: 2px; min-width: 0; }
+
+    .brand-name strong {
+      color: var(--black);
+      font-size: 22px;
+      font-weight: 900;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .brand-name span {
+      color: var(--steel);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .nav-actions {
       display: flex;
       align-items: center;
       gap: 18px;
-      margin-bottom: 36px;
-    }
-
-    .logo-mark {
-      width: 64px;
-      height: 64px;
-      flex-shrink: 0;
-    }
-
-    .brand h1 {
-      font-size: 1.55rem;
-      font-weight: 700;
-      color: var(--navy);
-      line-height: 1.1;
-    }
-    .brand p {
-      font-size: 0.82rem;
-      color: var(--silver);
-      letter-spacing: 0.06em;
+      color: var(--black);
+      font-size: 13px;
+      font-weight: 900;
       text-transform: uppercase;
-      margin-top: 3px;
+      white-space: nowrap;
     }
 
-    /* ── Card ── */
-    .card {
-      background: var(--white);
-      border-radius: 12px;
-      box-shadow: 0 4px 24px rgba(13,31,60,0.12);
-      width: 100%;
-      max-width: 760px;
-      padding: 40px;
+    /* ── Work area ─────────────────────────────────────────────────────────── */
+    .work-area {
+      display: grid;
+      grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
+      min-height: 0;
+      background:
+        linear-gradient(110deg, rgba(8,8,8,0.92) 0 38%, rgba(8,8,8,0) 38%),
+        repeating-linear-gradient(135deg, rgba(65,105,225,0.08) 0 10px, transparent 10px 24px),
+        var(--cream);
     }
 
-    .card h2 {
-      font-size: 1.1rem;
-      color: var(--navy);
-      margin-bottom: 6px;
-    }
-    .card .subtitle {
-      font-size: 0.86rem;
-      color: var(--silver);
-      margin-bottom: 28px;
+    /* ── Control panel (dark sidebar) ──────────────────────────────────────── */
+    .control-panel {
+      min-height: 0;
+      overflow: auto;
+      padding: 28px;
+      background: var(--charcoal);
+      color: #ffffff;
+      border-right: 1px solid #2b2b2b;
     }
 
-    /* ── Drop Zone ── */
-    .drop-zone {
-      border: 2.5px dashed var(--silver);
-      border-radius: 10px;
-      padding: 52px 30px;
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      color: #ffffff;
+      font-size: 34px;
+      line-height: 0.98;
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      margin: 14px 0 0;
+      color: #d1d1d1;
+      font-size: 15px;
+      line-height: 1.45;
+    }
+
+    /* ── Drop zone ─────────────────────────────────────────────────────────── */
+    .dropzone {
+      display: grid;
+      gap: 13px;
+      place-items: center;
+      min-height: 166px;
+      margin: 26px 0 18px;
+      padding: 24px;
+      border: 2px dashed #626262;
+      background: #101010;
+      color: #ffffff;
       text-align: center;
       cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
-      position: relative;
+      transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
     }
-    .drop-zone.drag-over {
-      border-color: var(--steel);
-      background: #eef4fb;
+
+    .dropzone strong { color: var(--accent); text-transform: uppercase; }
+    .dropzone em { color: var(--accent); font-style: normal; font-weight: 900; }
+
+    .dropzone svg {
+      width: 38px;
+      height: 38px;
+      color: var(--accent);
+      fill: none;
+      stroke: currentcolor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 2;
     }
-    .drop-zone input[type="file"] {
+
+    .dropzone.dragover {
+      border-color: var(--accent);
+      background: #111827;
+      transform: translateY(-1px);
+    }
+
+    .file-input {
       position: absolute;
-      inset: 0;
-      opacity: 0;
-      cursor: pointer;
-    }
-    .drop-zone svg { margin-bottom: 14px; opacity: 0.45; }
-    .drop-zone p { font-size: 0.95rem; color: var(--silver); }
-    .drop-zone span { color: var(--steel); font-weight: 600; }
-
-    /* ── Preview ── */
-    #preview-section { display: none; margin-top: 28px; }
-
-    .preview-label {
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
-      color: var(--silver);
-      margin-bottom: 10px;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
     }
 
-    #preview-img {
-      width: 100%;
-      border-radius: 8px;
-      border: 1.5px solid var(--light);
+    /* ── Job note field ────────────────────────────────────────────────────── */
+    .field-group {
+      margin: 0 0 18px;
+    }
+
+    .field-label {
       display: block;
-      max-height: 360px;
-      object-fit: contain;
-      background: #f4f6fa;
+      margin-bottom: 6px;
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
     }
 
-    /* ── Caption ── */
-    .caption-row {
-      margin-top: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .caption-row label {
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: var(--navy);
-    }
-    .caption-row input[type="text"] {
-      padding: 10px 14px;
-      border: 1.5px solid #cdd4df;
-      border-radius: 7px;
-      font-size: 0.93rem;
-      color: var(--text);
+    .field-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #3d3d3d;
+      background: #101010;
+      color: #ffffff;
+      font-size: 14px;
       outline: none;
-      transition: border-color 0.2s;
+      transition: border-color 150ms ease;
     }
-    .caption-row input[type="text"]:focus { border-color: var(--steel); }
 
-    /* ── Buttons ── */
-    .btn-row {
-      display: flex;
-      gap: 12px;
-      margin-top: 28px;
-      flex-wrap: wrap;
-    }
+    .field-input::placeholder { color: #555; }
+
+    .field-input:focus { border-color: var(--accent); }
+
+    /* ── Buttons ───────────────────────────────────────────────────────────── */
+    .button-row { display: grid; gap: 12px; }
 
     .btn {
-      padding: 12px 26px;
-      border-radius: 7px;
-      font-size: 0.93rem;
-      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      min-height: 48px;
+      width: 100%;
+      border: 2px solid transparent;
+      padding: 11px 16px;
       cursor: pointer;
-      border: none;
-      transition: opacity 0.15s, transform 0.1s;
+      font-weight: 900;
+      text-transform: uppercase;
+      transition: background 150ms ease, border-color 150ms ease, color 150ms ease, transform 150ms ease;
     }
-    .btn:active { transform: scale(0.97); }
-    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-    .btn-primary {
-      background: var(--navy);
-      color: var(--white);
-    }
-    .btn-primary:hover:not(:disabled) { opacity: 0.88; }
+    .btn:hover:not(:disabled) { transform: translateY(-1px); }
+
+    .btn-primary { background: var(--accent); color: var(--black); }
+    .btn-primary:hover:not(:disabled) { background: #557cff; }
 
     .btn-secondary {
-      background: var(--light);
-      color: var(--navy);
-      border: 1.5px solid #cdd4df;
+      background: transparent;
+      border-color: #3d3d3d;
+      color: #d1d1d1;
     }
-    .btn-secondary:hover:not(:disabled) { background: #dde4ee; }
+    .btn-secondary:hover:not(:disabled) {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
 
-    /* ── Status ── */
-    #status {
-      margin-top: 16px;
-      font-size: 0.88rem;
-      min-height: 22px;
+    .btn:disabled { cursor: not-allowed; opacity: 0.45; transform: none; }
+
+    /* ── Status ────────────────────────────────────────────────────────────── */
+    .status {
+      margin: 18px 0 0;
+      color: #d1d1d1;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+    .status.success { color: var(--accent); font-weight: 900; }
+    .status.error   { color: #ffffff; font-weight: 900; }
+
+    /* ── Right preview panel ───────────────────────────────────────────────── */
+    .preview-panel {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      min-width: 0;
+      min-height: 0;
+      padding: 28px;
+    }
+
+    .preview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 16px;
+      padding: 18px 20px;
+      background: var(--paper);
+      border-top: 5px solid var(--black);
+      box-shadow: 0 10px 26px rgba(0,0,0,0.12);
+    }
+
+    .preview-title p {
+      margin: 0 0 4px;
+      color: var(--accent-dark);
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .preview-title h2 {
+      margin: 0;
+      color: var(--black);
+      font-size: 24px;
+      line-height: 1.1;
+      text-transform: uppercase;
+    }
+
+    .preview-title span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* ── Document stage (grid background) ──────────────────────────────────── */
+    .document-stage {
+      min-height: 0;
+      overflow: auto;
+      padding: 18px;
+      background:
+        linear-gradient(rgba(8,8,8,0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(8,8,8,0.08) 1px, transparent 1px),
+        #d9d9d9;
+      background-size: 28px 28px;
+      border: 1px solid #c5c5c5;
+    }
+
+    .document-sheet {
+      width: min(100%, 980px);
+      min-height: 100%;
+      margin: 0 auto;
+      background: var(--paper);
+      border-top: 8px solid var(--accent);
+      box-shadow: 0 20px 54px rgba(0,0,0,0.24);
+    }
+
+    .sheet-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 16px 20px;
+      background: var(--black);
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .sheet-label span:last-child { color: var(--accent); }
+
+    .sheet-body { display: grid; gap: 20px; padding: 22px; }
+
+    /* ── Image preview inside the sheet ───────────────────────────────────── */
+    .image-stage {
+      min-height: 340px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--field);
+      border: 1px solid var(--line);
+    }
+
+    .image-stage img {
+      display: block;
+      max-width: 100%;
+      max-height: 520px;
+      object-fit: contain;
+    }
+
+    .empty-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      padding: 48px 24px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .empty-placeholder svg {
+      width: 48px;
+      height: 48px;
+      opacity: 0.25;
+      fill: none;
+      stroke: currentcolor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.5;
+    }
+
+    .empty-placeholder p {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .job-badge {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      background: var(--field);
+      border-left: 4px solid var(--accent);
+      font-size: 13px;
+    }
+
+    .job-badge span { font-weight: 900; text-transform: uppercase; color: var(--accent-dark); }
+    .job-badge strong { color: var(--ink); }
+
+    .sheet-note {
+      margin: 0;
       color: var(--steel);
-      font-weight: 500;
+      font-size: 13px;
+      line-height: 1.4;
     }
-    #status.error { color: #c0392b; }
 
-    /* ── Divider ── */
-    .divider {
-      height: 1px;
-      background: var(--light);
-      margin: 32px 0;
+    .sheet-note span { color: var(--accent-dark); font-weight: 900; }
+
+    /* ── Focus ─────────────────────────────────────────────────────────────── */
+    :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+
+    /* ── Responsive ────────────────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .nav, .top-strip { padding-left: 18px; padding-right: 18px; }
+      .nav-actions { display: none; }
+
+      .work-area {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto minmax(0, 1fr);
+      }
+
+      .control-panel { padding: 20px; border-right: 0; border-bottom: 1px solid #2b2b2b; }
+      h1 { font-size: 28px; }
+      .preview-panel { padding: 16px; }
+      .preview-header { align-items: stretch; flex-direction: column; }
+      .document-stage { padding: 10px; }
+    }
+
+    @media (max-width: 560px) {
+      .top-strip { align-items: flex-start; flex-direction: column; gap: 4px; }
+      .brand-name strong { font-size: 18px; }
+      .brand-name span { font-size: 11px; }
     }
   </style>
 </head>
 <body>
+<div class="app-shell">
 
-  <!-- App Header -->
-  <div class="app-header">
-    <!-- SVG logo mark: stylised metal panel / chevron -->
-    <svg class="logo-mark" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="64" height="64" rx="10" fill="#0d1f3c"/>
-      <!-- horizontal metal panel lines -->
-      <rect x="8"  y="14" width="48" height="7"  rx="2" fill="#2563a8"/>
-      <rect x="8"  y="24" width="48" height="7"  rx="2" fill="#3a7bd5"/>
-      <rect x="8"  y="34" width="48" height="7"  rx="2" fill="#2563a8"/>
-      <rect x="8"  y="44" width="48" height="7"  rx="2" fill="#3a7bd5"/>
-      <!-- gold accent bar -->
-      <rect x="8"  y="10" width="48" height="3"  rx="1.5" fill="#c8922a"/>
-    </svg>
-
-    <div class="brand">
-      <h1>Practical Metals</h1>
-      <p>Practical Building Systems &nbsp;|&nbsp; 3D Roof Rendering PDF</p>
-    </div>
-  </div>
-
-  <!-- Main Card -->
-  <div class="card">
-    <h2>Upload Your 3D Roof Screenshot</h2>
-    <p class="subtitle">Drop an image below, add an optional job note, then generate a branded PDF to share with your customer.</p>
-
-    <!-- Drop Zone -->
-    <div class="drop-zone" id="drop-zone">
-      <input type="file" id="file-input" accept="image/*" />
-      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-        <path d="M24 4L8 20h9v16h14V20h9L24 4z" fill="#2563a8"/>
-        <rect x="6" y="40" width="36" height="4" rx="2" fill="#8c9ab0"/>
-      </svg>
-      <p>Drag &amp; drop screenshot here, or <span>click to browse</span></p>
+  <header>
+    <div class="top-strip">
+      <div>Metal building components — <span>3D roof rendering PDF output</span></div>
+      <div>Local PDF generation — nothing uploaded</div>
     </div>
 
-    <!-- Preview + Options -->
-    <div id="preview-section">
-      <div class="divider"></div>
-      <p class="preview-label">Preview</p>
-      <img id="preview-img" alt="Screenshot preview" />
+    <nav class="nav" aria-label="Application header">
+      <div class="brand">
+        <div class="brand-name">
+          <strong>Practical Metals</strong>
+          <span>3D Roof Rendering PDF Generator</span>
+        </div>
+      </div>
+      <div class="nav-actions" aria-hidden="true">
+        <span>Panels</span>
+        <span>Trim</span>
+        <span>Buildings</span>
+        <span>PDF Tools</span>
+      </div>
+    </nav>
+  </header>
 
-      <div class="caption-row">
-        <label for="job-note">Job Note / Customer Name (optional — appears on PDF)</label>
-        <input type="text" id="job-note" placeholder="e.g. Smith Residence – 123 Main St" />
+  <div class="work-area">
+
+    <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
+    <aside class="control-panel">
+      <p class="eyebrow">Fast document output</p>
+      <h1>Build Roof<br>Rendering PDF</h1>
+      <p class="subtitle">Upload a 3D roof screenshot and we'll wrap it in a branded customer-ready PDF with a panel breakout call-to-action.</p>
+
+      <label class="dropzone" id="dropzone" for="fileInput">
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="17 8 12 3 7 8"></polyline>
+          <line x1="12" x2="12" y1="3" y2="15"></line>
+        </svg>
+        <span><strong>Choose or drop a screenshot</strong><br>PNG, JPG, WEBP accepted.</span>
+        <input class="file-input" id="fileInput" type="file" accept="image/*">
+      </label>
+
+      <div class="field-group">
+        <label class="field-label" for="jobNote">Job / Customer Name (optional)</label>
+        <input class="field-input" id="jobNote" type="text" placeholder="e.g. Smith Residence – 123 Main St">
       </div>
 
-      <div class="btn-row">
-        <button class="btn btn-primary" id="generate-btn">Generate PDF</button>
-        <button class="btn btn-secondary" id="reset-btn">Start Over</button>
+      <div class="button-row">
+        <button id="generateBtn" class="btn btn-primary" type="button" disabled>
+          Download PDF
+        </button>
+        <button id="resetBtn" class="btn btn-secondary" type="button" disabled>
+          Clear Image
+        </button>
       </div>
-      <div id="status"></div>
-    </div>
+
+      <p id="status" class="status" role="status">Drop a screenshot to get started.</p>
+    </aside>
+
+    <!-- ── Preview panel ─────────────────────────────────────────────────── -->
+    <main class="preview-panel">
+      <div class="preview-header">
+        <div class="preview-title">
+          <p>PDF page preview</p>
+          <h2>3D Roof Rendering</h2>
+          <span>The image below is what will be centered on the generated PDF page.</span>
+        </div>
+      </div>
+
+      <section class="document-stage" aria-label="Rendering preview">
+        <article class="document-sheet">
+          <div class="sheet-label">
+            <span>Practical Metals — customer rendering preview</span>
+            <span id="sheetStatus">No image loaded</span>
+          </div>
+
+          <div class="sheet-body">
+            <div class="image-stage" id="imageStage">
+              <div class="empty-placeholder">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                  <polyline points="21 15 16 10 5 21"></polyline>
+                </svg>
+                <p>Screenshot will appear here</p>
+              </div>
+            </div>
+
+            <div class="job-badge" id="jobBadge">
+              <span>Job / Customer:</span>
+              <strong id="jobBadgeText"></strong>
+            </div>
+
+            <p class="sheet-note">
+              <span>&#10003;</span> The downloaded PDF includes a customer-facing header explaining this is a 3D rendering of their roof, and that a full panel breakout is available when they proceed with the job.
+            </p>
+          </div>
+        </article>
+      </section>
+    </main>
+
   </div>
+</div>
 
-  <script>
-    const { jsPDF } = window.jspdf;
+<script>
+  const { jsPDF } = window.jspdf;
 
-    const dropZone     = document.getElementById('drop-zone');
-    const fileInput    = document.getElementById('file-input');
-    const previewSec   = document.getElementById('preview-section');
-    const previewImg   = document.getElementById('preview-img');
-    const generateBtn  = document.getElementById('generate-btn');
-    const resetBtn     = document.getElementById('reset-btn');
-    const jobNote      = document.getElementById('job-note');
-    const statusEl     = document.getElementById('status');
+  const dropzone    = document.getElementById('dropzone');
+  const fileInput   = document.getElementById('fileInput');
+  const generateBtn = document.getElementById('generateBtn');
+  const resetBtn    = document.getElementById('resetBtn');
+  const jobNote     = document.getElementById('jobNote');
+  const statusEl    = document.getElementById('status');
+  const imageStage  = document.getElementById('imageStage');
+  const sheetStatus = document.getElementById('sheetStatus');
+  const jobBadge    = document.getElementById('jobBadge');
+  const jobBadgeText = document.getElementById('jobBadgeText');
 
-    let imageDataURL = null;
+  let imageDataURL = null;
 
-    // ── Drag & Drop ──────────────────────────────────────────────────────────
-    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-    dropZone.addEventListener('drop', e => {
-      e.preventDefault();
-      dropZone.classList.remove('drag-over');
-      const file = e.dataTransfer.files[0];
-      if (file) loadFile(file);
-    });
-    fileInput.addEventListener('change', () => { if (fileInput.files[0]) loadFile(fileInput.files[0]); });
+  // ── Drag & drop ──────────────────────────────────────────────────────────
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) loadFile(file);
+  });
+  fileInput.addEventListener('change', () => { if (fileInput.files[0]) loadFile(fileInput.files[0]); });
 
-    function loadFile(file) {
-      if (!file.type.startsWith('image/')) {
-        setStatus('Please upload an image file.', true);
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = e => {
-        imageDataURL = e.target.result;
-        previewImg.src = imageDataURL;
-        previewSec.style.display = 'block';
-        setStatus('');
-      };
-      reader.readAsDataURL(file);
+  // ── Job note live update ─────────────────────────────────────────────────
+  jobNote.addEventListener('input', () => {
+    const note = jobNote.value.trim();
+    if (note && imageDataURL) {
+      jobBadge.style.display = 'flex';
+      jobBadgeText.textContent = note;
+    } else {
+      jobBadge.style.display = 'none';
     }
+  });
 
-    // ── Reset ────────────────────────────────────────────────────────────────
-    resetBtn.addEventListener('click', () => {
-      imageDataURL = null;
-      previewImg.src = '';
-      fileInput.value = '';
-      jobNote.value = '';
-      previewSec.style.display = 'none';
-      setStatus('');
-    });
+  function loadFile(file) {
+    if (!file.type.startsWith('image/')) {
+      setStatus('Please upload an image file.', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = e => {
+      imageDataURL = e.target.result;
 
-    // ── Generate PDF ─────────────────────────────────────────────────────────
-    generateBtn.addEventListener('click', () => {
-      if (!imageDataURL) { setStatus('No image loaded.', true); return; }
-      generateBtn.disabled = true;
-      setStatus('Generating PDF…');
+      // Replace placeholder with actual image
+      imageStage.innerHTML = `<img src="${imageDataURL}" alt="3D roof rendering preview">`;
 
-      // Small delay so the UI updates before the sync jsPDF work
-      setTimeout(() => {
-        try {
-          buildPDF();
-          setStatus('PDF downloaded successfully.');
-        } catch (err) {
-          setStatus('Error generating PDF: ' + err.message, true);
-          console.error(err);
-        }
-        generateBtn.disabled = false;
-      }, 80);
-    });
+      generateBtn.disabled = false;
+      resetBtn.disabled = false;
+      sheetStatus.textContent = 'Image loaded';
+      setStatus('Image loaded — ready to download PDF.', 'success');
 
-    function buildPDF() {
-      // Letter, portrait, points
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
-
-      const PW = doc.internal.pageSize.getWidth();   // 612
-      const PH = doc.internal.pageSize.getHeight();  // 792
-
-      // ── Colour palette ────────────────────────────────────────────────────
-      const NAVY   = [13,  31,  60];
-      const STEEL  = [37, 99, 168];
-      const GOLD   = [200, 146, 42];
-      const SILVER = [140, 154, 176];
-      const WHITE  = [255, 255, 255];
-      const LTGRAY = [232, 237, 244];
-
-      // ── Background ────────────────────────────────────────────────────────
-      doc.setFillColor(...LTGRAY);
-      doc.rect(0, 0, PW, PH, 'F');
-
-      // ── Header band ───────────────────────────────────────────────────────
-      const HEADER_H = 110;
-      doc.setFillColor(...NAVY);
-      doc.rect(0, 0, PW, HEADER_H, 'F');
-
-      // Gold accent stripe
-      doc.setFillColor(...GOLD);
-      doc.rect(0, HEADER_H, PW, 5, 'F');
-
-      // ── Logo mark (metal panels) in header ────────────────────────────────
-      const LX = 36, LY = 20, LW = 54, LH = 70;
-      // Panel rows
-      const panels = [
-        [STEEL, 0], [[37,123,213], 12], [STEEL, 24], [[37,123,213], 36],
-      ];
-      panels.forEach(([col, dy]) => {
-        doc.setFillColor(...col);
-        doc.roundedRect(LX, LY + dy, LW, 10, 1, 1, 'F');
-      });
-      // Gold cap
-      doc.setFillColor(...GOLD);
-      doc.roundedRect(LX, LY - 4, LW, 4.5, 1, 1, 'F');
-
-      // ── Company name ──────────────────────────────────────────────────────
-      const TX = LX + LW + 18;
-      doc.setTextColor(...WHITE);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(22);
-      doc.text('PRACTICAL METALS', TX, 52);
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
-      doc.setTextColor(...SILVER);
-      doc.text('Practical Building Systems', TX, 68);
-
-      // ── Divider line in header ────────────────────────────────────────────
-      doc.setDrawColor(...STEEL);
-      doc.setLineWidth(0.8);
-      doc.line(TX, 76, PW - 36, 76);
-
-      // ── Header tagline ────────────────────────────────────────────────────
-      doc.setFont('helvetica', 'bolditalic');
-      doc.setFontSize(10.5);
-      doc.setTextColor(...GOLD);
-      doc.text('3D Roof Rendering', TX, 94);
-
-      // ── Headline text block ───────────────────────────────────────────────
-      const BODY_TOP = HEADER_H + 28;
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(13.5);
-      doc.setTextColor(...NAVY);
-      doc.text('Your Roof — Rendered in 3D', 36, BODY_TOP);
-
-      const bodyText =
-        'The image below is a three-dimensional rendering of your roof generated from your project details. ' +
-        'If you choose to proceed with your Practical Metals order, our team will provide a full panel ' +
-        'breakout — including exact panel counts, lengths, and trim details — tailored specifically for your roof.';
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10.5);
-      doc.setTextColor(60, 70, 90);
-      const lines = doc.splitTextToSize(bodyText, PW - 72);
-      doc.text(lines, 36, BODY_TOP + 20);
-
-      const textBlockBottom = BODY_TOP + 20 + lines.length * 14;
-
-      // ── Job note ──────────────────────────────────────────────────────────
+      // Show job badge if note already filled
       const note = jobNote.value.trim();
-      let noteBottom = textBlockBottom + 8;
       if (note) {
-        doc.setFillColor(...STEEL);
-        doc.setTextColor(...WHITE);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(9.5);
-        const noteLabel = 'Job / Customer:  ' + note;
-        const noteW = doc.getTextWidth(noteLabel) + 24;
-        doc.roundedRect(36, noteBottom, noteW, 20, 3, 3, 'F');
-        doc.text(noteLabel, 48, noteBottom + 13.5);
-        noteBottom += 28;
+        jobBadge.style.display = 'flex';
+        jobBadgeText.textContent = note;
       }
+    };
+    reader.readAsDataURL(file);
+  }
 
-      // ── Separator ─────────────────────────────────────────────────────────
-      doc.setDrawColor(...GOLD);
-      doc.setLineWidth(1.5);
-      doc.line(36, noteBottom + 4, PW - 36, noteBottom + 4);
+  // ── Reset ────────────────────────────────────────────────────────────────
+  resetBtn.addEventListener('click', () => {
+    imageDataURL = null;
+    fileInput.value = '';
+    jobNote.value = '';
+    imageStage.innerHTML = `
+      <div class="empty-placeholder">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentcolor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <circle cx="8.5" cy="8.5" r="1.5"></circle>
+          <polyline points="21 15 16 10 5 21"></polyline>
+        </svg>
+        <p>Screenshot will appear here</p>
+      </div>`;
+    jobBadge.style.display = 'none';
+    generateBtn.disabled = true;
+    resetBtn.disabled = true;
+    sheetStatus.textContent = 'No image loaded';
+    setStatus('Drop a screenshot to get started.');
+  });
 
-      // ── Screenshot image ──────────────────────────────────────────────────
-      const IMG_TOP    = noteBottom + 16;
-      const FOOTER_H   = 52;
-      const IMG_AVAIL_H = PH - IMG_TOP - FOOTER_H - 16;
-      const IMG_AVAIL_W = PW - 72;
+  // ── Generate PDF ─────────────────────────────────────────────────────────
+  generateBtn.addEventListener('click', () => {
+    if (!imageDataURL) return;
+    generateBtn.disabled = true;
+    setStatus('Generating PDF…');
 
-      // figure out the natural dimensions from the data URL
-      const tempImg = new Image();
-      tempImg.src = imageDataURL;
-      const natW = tempImg.naturalWidth  || IMG_AVAIL_W;
-      const natH = tempImg.naturalHeight || IMG_AVAIL_H;
+    setTimeout(() => {
+      try {
+        buildPDF();
+        setStatus('PDF downloaded successfully.', 'success');
+      } catch (err) {
+        setStatus('Error generating PDF: ' + err.message, 'error');
+        console.error(err);
+      }
+      generateBtn.disabled = false;
+    }, 80);
+  });
 
-      const scale = Math.min(IMG_AVAIL_W / natW, IMG_AVAIL_H / natH, 1);
-      const drawW = natW * scale;
-      const drawH = natH * scale;
-      const imgX  = (PW - drawW) / 2;
-      const imgY  = IMG_TOP;
+  function buildPDF() {
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
 
-      // Subtle shadow / border behind image
-      doc.setFillColor(180, 190, 210);
-      doc.roundedRect(imgX + 3, imgY + 3, drawW, drawH, 4, 4, 'F');
-      doc.setFillColor(...WHITE);
-      doc.roundedRect(imgX, imgY, drawW, drawH, 4, 4, 'F');
+    const PW = doc.internal.pageSize.getWidth();   // 612
+    const PH = doc.internal.pageSize.getHeight();  // 792
 
-      const imgFormat = imageDataURL.startsWith('data:image/png') ? 'PNG' : 'JPEG';
-      doc.addImage(imageDataURL, imgFormat, imgX, imgY, drawW, drawH);
+    // Palette — matches the app's CSS variables
+    const BLACK       = [8,   8,   8];
+    const ACCENT      = [65,  105, 225];  // #4169e1
+    const ACCENT_DARK = [39,  70,  168];  // #2746a8
+    const WHITE       = [255, 255, 255];
+    const CREAM       = [246, 242, 236];
+    const STEEL       = [75,  85,  99];
+    const MUTED       = [102, 102, 102];
 
-      // Thin border on image
-      doc.setDrawColor(...STEEL);
-      doc.setLineWidth(0.8);
-      doc.roundedRect(imgX, imgY, drawW, drawH, 4, 4, 'S');
+    // ── Background ──────────────────────────────────────────────────────────
+    doc.setFillColor(...CREAM);
+    doc.rect(0, 0, PW, PH, 'F');
 
-      // ── Footer ────────────────────────────────────────────────────────────
-      const FY = PH - FOOTER_H;
-      doc.setFillColor(...NAVY);
-      doc.rect(0, FY, PW, FOOTER_H, 'F');
+    // ── Header band ─────────────────────────────────────────────────────────
+    const HEADER_H = 108;
+    doc.setFillColor(...BLACK);
+    doc.rect(0, 0, PW, HEADER_H, 'F');
 
-      doc.setFillColor(...GOLD);
-      doc.rect(0, FY, PW, 3, 'F');
+    // Accent stripe at bottom of header
+    doc.setFillColor(...ACCENT);
+    doc.rect(0, HEADER_H, PW, 5, 'F');
 
+    // Brand name
+    doc.setTextColor(...WHITE);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.text('PRACTICAL METALS', 36, 48);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(...STEEL);
+    doc.text('PRACTICAL BUILDING SYSTEMS', 36, 64);
+
+    // Thin rule
+    doc.setDrawColor(...ACCENT_DARK);
+    doc.setLineWidth(0.6);
+    doc.line(36, 72, PW - 36, 72);
+
+    // Eyebrow label
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(...ACCENT);
+    doc.text('3D ROOF RENDERING', 36, 90);
+
+    // ── Headline block ──────────────────────────────────────────────────────
+    const BODY_TOP = HEADER_H + 28;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(...BLACK);
+    doc.text('Your Roof — Rendered in 3D', 36, BODY_TOP);
+
+    const bodyText =
+      'The image below is a three-dimensional rendering of your roof generated from your project details. ' +
+      'If you choose to proceed with your Practical Metals order, our team will provide a full panel breakout — ' +
+      'including exact panel counts, lengths, and trim details — tailored specifically for your roof.';
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10.5);
+    doc.setTextColor(60, 70, 90);
+    const lines = doc.splitTextToSize(bodyText, PW - 72);
+    doc.text(lines, 36, BODY_TOP + 18);
+
+    let cursorY = BODY_TOP + 18 + lines.length * 14;
+
+    // ── Job note badge ──────────────────────────────────────────────────────
+    const note = jobNote.value.trim();
+    if (note) {
+      cursorY += 6;
+      doc.setFillColor(...ACCENT);
+      doc.rect(36, cursorY, 4, 20, 'F');
+      doc.setFillColor(240, 243, 252);
+      doc.rect(40, cursorY, PW - 76, 20, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(...ACCENT_DARK);
+      doc.text('JOB / CUSTOMER:', 48, cursorY + 13);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8.5);
-      doc.setTextColor(...SILVER);
-      doc.text('Practical Building Systems  |  Practical Metals', 36, FY + 22);
-      doc.text('This rendering is for illustrative purposes. Final panel breakout provided upon job confirmation.', 36, FY + 37);
-
-      // Page number right-aligned
-      doc.setTextColor(...STEEL);
-      doc.text('Page 1 of 1', PW - 36, FY + 22, { align: 'right' });
-
-      // ── Save ──────────────────────────────────────────────────────────────
-      const safeNote = note.replace(/[^a-zA-Z0-9_\- ]/g, '').trim().replace(/ /g, '_');
-      const filename = safeNote ? `Practical_Metals_3D_Roof_${safeNote}.pdf` : 'Practical_Metals_3D_Roof_Rendering.pdf';
-      doc.save(filename);
+      doc.setTextColor(...BLACK);
+      doc.text(note, 48 + doc.getTextWidth('JOB / CUSTOMER:  '), cursorY + 13);
+      cursorY += 28;
     }
 
-    function setStatus(msg, isError = false) {
-      statusEl.textContent = msg;
-      statusEl.className = isError ? 'error' : '';
-    }
-  </script>
+    // ── Separator ───────────────────────────────────────────────────────────
+    cursorY += 6;
+    doc.setDrawColor(...ACCENT);
+    doc.setLineWidth(1.5);
+    doc.line(36, cursorY, PW - 36, cursorY);
+    cursorY += 14;
+
+    // ── Screenshot image ─────────────────────────────────────────────────────
+    const FOOTER_H  = 52;
+    const availH    = PH - cursorY - FOOTER_H - 10;
+    const availW    = PW - 72;
+
+    const tempImg = new Image();
+    tempImg.src = imageDataURL;
+    const natW = tempImg.naturalWidth  || availW;
+    const natH = tempImg.naturalHeight || availH;
+
+    const scale = Math.min(availW / natW, availH / natH, 1);
+    const drawW = natW * scale;
+    const drawH = natH * scale;
+    const imgX  = (PW - drawW) / 2;
+    const imgY  = cursorY;
+
+    // Drop shadow
+    doc.setFillColor(200, 205, 215);
+    doc.rect(imgX + 3, imgY + 3, drawW, drawH, 'F');
+    doc.setFillColor(...WHITE);
+    doc.rect(imgX, imgY, drawW, drawH, 'F');
+
+    const fmt = imageDataURL.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+    doc.addImage(imageDataURL, fmt, imgX, imgY, drawW, drawH);
+
+    // Image border
+    doc.setDrawColor(...ACCENT_DARK);
+    doc.setLineWidth(0.8);
+    doc.rect(imgX, imgY, drawW, drawH, 'S');
+
+    // ── Footer ───────────────────────────────────────────────────────────────
+    const FY = PH - FOOTER_H;
+    doc.setFillColor(...BLACK);
+    doc.rect(0, FY, PW, FOOTER_H, 'F');
+
+    doc.setFillColor(...ACCENT);
+    doc.rect(0, FY, PW, 3, 'F');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...STEEL);
+    doc.text('PRACTICAL BUILDING SYSTEMS  |  PRACTICAL METALS', 36, FY + 22);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(90, 95, 110);
+    doc.text('This rendering is for illustrative purposes. Final panel breakout provided upon job confirmation.', 36, FY + 37);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...ACCENT);
+    doc.text('PAGE 1 OF 1', PW - 36, FY + 22, { align: 'right' });
+
+    // ── Save ─────────────────────────────────────────────────────────────────
+    const safeNote = note.replace(/[^a-zA-Z0-9_\- ]/g, '').trim().replace(/ /g, '_');
+    const filename = safeNote
+      ? `Practical_Metals_3D_Roof_${safeNote}.pdf`
+      : 'Practical_Metals_3D_Roof_Rendering.pdf';
+    doc.save(filename);
+  }
+
+  function setStatus(msg, type = '') {
+    statusEl.textContent = msg;
+    statusEl.className = 'status' + (type ? ' ' + type : '');
+  }
+</script>
 </body>
 </html>
