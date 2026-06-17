@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Practical Metals – 3D Roof Rendering PDF Generator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --navy:   #0d1f3c;
+      --steel:  #2563a8;
+      --silver: #8c9ab0;
+      --light:  #e8edf4;
+      --white:  #ffffff;
+      --gold:   #c8922a;
+      --text:   #1a2744;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: var(--light);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px 60px;
+    }
+
+    /* ── Header ── */
+    .app-header {
+      width: 100%;
+      max-width: 760px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 36px;
+    }
+
+    .logo-mark {
+      width: 64px;
+      height: 64px;
+      flex-shrink: 0;
+    }
+
+    .brand h1 {
+      font-size: 1.55rem;
+      font-weight: 700;
+      color: var(--navy);
+      line-height: 1.1;
+    }
+    .brand p {
+      font-size: 0.82rem;
+      color: var(--silver);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-top: 3px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--white);
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(13,31,60,0.12);
+      width: 100%;
+      max-width: 760px;
+      padding: 40px;
+    }
+
+    .card h2 {
+      font-size: 1.1rem;
+      color: var(--navy);
+      margin-bottom: 6px;
+    }
+    .card .subtitle {
+      font-size: 0.86rem;
+      color: var(--silver);
+      margin-bottom: 28px;
+    }
+
+    /* ── Drop Zone ── */
+    .drop-zone {
+      border: 2.5px dashed var(--silver);
+      border-radius: 10px;
+      padding: 52px 30px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+    .drop-zone.drag-over {
+      border-color: var(--steel);
+      background: #eef4fb;
+    }
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .drop-zone svg { margin-bottom: 14px; opacity: 0.45; }
+    .drop-zone p { font-size: 0.95rem; color: var(--silver); }
+    .drop-zone span { color: var(--steel); font-weight: 600; }
+
+    /* ── Preview ── */
+    #preview-section { display: none; margin-top: 28px; }
+
+    .preview-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--silver);
+      margin-bottom: 10px;
+    }
+
+    #preview-img {
+      width: 100%;
+      border-radius: 8px;
+      border: 1.5px solid var(--light);
+      display: block;
+      max-height: 360px;
+      object-fit: contain;
+      background: #f4f6fa;
+    }
+
+    /* ── Caption ── */
+    .caption-row {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .caption-row label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--navy);
+    }
+    .caption-row input[type="text"] {
+      padding: 10px 14px;
+      border: 1.5px solid #cdd4df;
+      border-radius: 7px;
+      font-size: 0.93rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .caption-row input[type="text"]:focus { border-color: var(--steel); }
+
+    /* ── Buttons ── */
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 28px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 12px 26px;
+      border-radius: 7px;
+      font-size: 0.93rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .btn-primary {
+      background: var(--navy);
+      color: var(--white);
+    }
+    .btn-primary:hover:not(:disabled) { opacity: 0.88; }
+
+    .btn-secondary {
+      background: var(--light);
+      color: var(--navy);
+      border: 1.5px solid #cdd4df;
+    }
+    .btn-secondary:hover:not(:disabled) { background: #dde4ee; }
+
+    /* ── Status ── */
+    #status {
+      margin-top: 16px;
+      font-size: 0.88rem;
+      min-height: 22px;
+      color: var(--steel);
+      font-weight: 500;
+    }
+    #status.error { color: #c0392b; }
+
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: var(--light);
+      margin: 32px 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- App Header -->
+  <div class="app-header">
+    <!-- SVG logo mark: stylised metal panel / chevron -->
+    <svg class="logo-mark" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="64" height="64" rx="10" fill="#0d1f3c"/>
+      <!-- horizontal metal panel lines -->
+      <rect x="8"  y="14" width="48" height="7"  rx="2" fill="#2563a8"/>
+      <rect x="8"  y="24" width="48" height="7"  rx="2" fill="#3a7bd5"/>
+      <rect x="8"  y="34" width="48" height="7"  rx="2" fill="#2563a8"/>
+      <rect x="8"  y="44" width="48" height="7"  rx="2" fill="#3a7bd5"/>
+      <!-- gold accent bar -->
+      <rect x="8"  y="10" width="48" height="3"  rx="1.5" fill="#c8922a"/>
+    </svg>
+
+    <div class="brand">
+      <h1>Practical Metals</h1>
+      <p>Practical Building Systems &nbsp;|&nbsp; 3D Roof Rendering PDF</p>
+    </div>
+  </div>
+
+  <!-- Main Card -->
+  <div class="card">
+    <h2>Upload Your 3D Roof Screenshot</h2>
+    <p class="subtitle">Drop an image below, add an optional job note, then generate a branded PDF to share with your customer.</p>
+
+    <!-- Drop Zone -->
+    <div class="drop-zone" id="drop-zone">
+      <input type="file" id="file-input" accept="image/*" />
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+        <path d="M24 4L8 20h9v16h14V20h9L24 4z" fill="#2563a8"/>
+        <rect x="6" y="40" width="36" height="4" rx="2" fill="#8c9ab0"/>
+      </svg>
+      <p>Drag &amp; drop screenshot here, or <span>click to browse</span></p>
+    </div>
+
+    <!-- Preview + Options -->
+    <div id="preview-section">
+      <div class="divider"></div>
+      <p class="preview-label">Preview</p>
+      <img id="preview-img" alt="Screenshot preview" />
+
+      <div class="caption-row">
+        <label for="job-note">Job Note / Customer Name (optional — appears on PDF)</label>
+        <input type="text" id="job-note" placeholder="e.g. Smith Residence – 123 Main St" />
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="generate-btn">Generate PDF</button>
+        <button class="btn btn-secondary" id="reset-btn">Start Over</button>
+      </div>
+      <div id="status"></div>
+    </div>
+  </div>
+
+  <script>
+    const { jsPDF } = window.jspdf;
+
+    const dropZone     = document.getElementById('drop-zone');
+    const fileInput    = document.getElementById('file-input');
+    const previewSec   = document.getElementById('preview-section');
+    const previewImg   = document.getElementById('preview-img');
+    const generateBtn  = document.getElementById('generate-btn');
+    const resetBtn     = document.getElementById('reset-btn');
+    const jobNote      = document.getElementById('job-note');
+    const statusEl     = document.getElementById('status');
+
+    let imageDataURL = null;
+
+    // ── Drag & Drop ──────────────────────────────────────────────────────────
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) loadFile(file);
+    });
+    fileInput.addEventListener('change', () => { if (fileInput.files[0]) loadFile(fileInput.files[0]); });
+
+    function loadFile(file) {
+      if (!file.type.startsWith('image/')) {
+        setStatus('Please upload an image file.', true);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = e => {
+        imageDataURL = e.target.result;
+        previewImg.src = imageDataURL;
+        previewSec.style.display = 'block';
+        setStatus('');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // ── Reset ────────────────────────────────────────────────────────────────
+    resetBtn.addEventListener('click', () => {
+      imageDataURL = null;
+      previewImg.src = '';
+      fileInput.value = '';
+      jobNote.value = '';
+      previewSec.style.display = 'none';
+      setStatus('');
+    });
+
+    // ── Generate PDF ─────────────────────────────────────────────────────────
+    generateBtn.addEventListener('click', () => {
+      if (!imageDataURL) { setStatus('No image loaded.', true); return; }
+      generateBtn.disabled = true;
+      setStatus('Generating PDF…');
+
+      // Small delay so the UI updates before the sync jsPDF work
+      setTimeout(() => {
+        try {
+          buildPDF();
+          setStatus('PDF downloaded successfully.');
+        } catch (err) {
+          setStatus('Error generating PDF: ' + err.message, true);
+          console.error(err);
+        }
+        generateBtn.disabled = false;
+      }, 80);
+    });
+
+    function buildPDF() {
+      // Letter, portrait, points
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
+
+      const PW = doc.internal.pageSize.getWidth();   // 612
+      const PH = doc.internal.pageSize.getHeight();  // 792
+
+      // ── Colour palette ────────────────────────────────────────────────────
+      const NAVY   = [13,  31,  60];
+      const STEEL  = [37, 99, 168];
+      const GOLD   = [200, 146, 42];
+      const SILVER = [140, 154, 176];
+      const WHITE  = [255, 255, 255];
+      const LTGRAY = [232, 237, 244];
+
+      // ── Background ────────────────────────────────────────────────────────
+      doc.setFillColor(...LTGRAY);
+      doc.rect(0, 0, PW, PH, 'F');
+
+      // ── Header band ───────────────────────────────────────────────────────
+      const HEADER_H = 110;
+      doc.setFillColor(...NAVY);
+      doc.rect(0, 0, PW, HEADER_H, 'F');
+
+      // Gold accent stripe
+      doc.setFillColor(...GOLD);
+      doc.rect(0, HEADER_H, PW, 5, 'F');
+
+      // ── Logo mark (metal panels) in header ────────────────────────────────
+      const LX = 36, LY = 20, LW = 54, LH = 70;
+      // Panel rows
+      const panels = [
+        [STEEL, 0], [[37,123,213], 12], [STEEL, 24], [[37,123,213], 36],
+      ];
+      panels.forEach(([col, dy]) => {
+        doc.setFillColor(...col);
+        doc.roundedRect(LX, LY + dy, LW, 10, 1, 1, 'F');
+      });
+      // Gold cap
+      doc.setFillColor(...GOLD);
+      doc.roundedRect(LX, LY - 4, LW, 4.5, 1, 1, 'F');
+
+      // ── Company name ──────────────────────────────────────────────────────
+      const TX = LX + LW + 18;
+      doc.setTextColor(...WHITE);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(22);
+      doc.text('PRACTICAL METALS', TX, 52);
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(...SILVER);
+      doc.text('Practical Building Systems', TX, 68);
+
+      // ── Divider line in header ────────────────────────────────────────────
+      doc.setDrawColor(...STEEL);
+      doc.setLineWidth(0.8);
+      doc.line(TX, 76, PW - 36, 76);
+
+      // ── Header tagline ────────────────────────────────────────────────────
+      doc.setFont('helvetica', 'bolditalic');
+      doc.setFontSize(10.5);
+      doc.setTextColor(...GOLD);
+      doc.text('3D Roof Rendering', TX, 94);
+
+      // ── Headline text block ───────────────────────────────────────────────
+      const BODY_TOP = HEADER_H + 28;
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13.5);
+      doc.setTextColor(...NAVY);
+      doc.text('Your Roof — Rendered in 3D', 36, BODY_TOP);
+
+      const bodyText =
+        'The image below is a three-dimensional rendering of your roof generated from your project details. ' +
+        'If you choose to proceed with your Practical Metals order, our team will provide a full panel ' +
+        'breakout — including exact panel counts, lengths, and trim details — tailored specifically for your roof.';
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10.5);
+      doc.setTextColor(60, 70, 90);
+      const lines = doc.splitTextToSize(bodyText, PW - 72);
+      doc.text(lines, 36, BODY_TOP + 20);
+
+      const textBlockBottom = BODY_TOP + 20 + lines.length * 14;
+
+      // ── Job note ──────────────────────────────────────────────────────────
+      const note = jobNote.value.trim();
+      let noteBottom = textBlockBottom + 8;
+      if (note) {
+        doc.setFillColor(...STEEL);
+        doc.setTextColor(...WHITE);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9.5);
+        const noteLabel = 'Job / Customer:  ' + note;
+        const noteW = doc.getTextWidth(noteLabel) + 24;
+        doc.roundedRect(36, noteBottom, noteW, 20, 3, 3, 'F');
+        doc.text(noteLabel, 48, noteBottom + 13.5);
+        noteBottom += 28;
+      }
+
+      // ── Separator ─────────────────────────────────────────────────────────
+      doc.setDrawColor(...GOLD);
+      doc.setLineWidth(1.5);
+      doc.line(36, noteBottom + 4, PW - 36, noteBottom + 4);
+
+      // ── Screenshot image ──────────────────────────────────────────────────
+      const IMG_TOP    = noteBottom + 16;
+      const FOOTER_H   = 52;
+      const IMG_AVAIL_H = PH - IMG_TOP - FOOTER_H - 16;
+      const IMG_AVAIL_W = PW - 72;
+
+      // figure out the natural dimensions from the data URL
+      const tempImg = new Image();
+      tempImg.src = imageDataURL;
+      const natW = tempImg.naturalWidth  || IMG_AVAIL_W;
+      const natH = tempImg.naturalHeight || IMG_AVAIL_H;
+
+      const scale = Math.min(IMG_AVAIL_W / natW, IMG_AVAIL_H / natH, 1);
+      const drawW = natW * scale;
+      const drawH = natH * scale;
+      const imgX  = (PW - drawW) / 2;
+      const imgY  = IMG_TOP;
+
+      // Subtle shadow / border behind image
+      doc.setFillColor(180, 190, 210);
+      doc.roundedRect(imgX + 3, imgY + 3, drawW, drawH, 4, 4, 'F');
+      doc.setFillColor(...WHITE);
+      doc.roundedRect(imgX, imgY, drawW, drawH, 4, 4, 'F');
+
+      const imgFormat = imageDataURL.startsWith('data:image/png') ? 'PNG' : 'JPEG';
+      doc.addImage(imageDataURL, imgFormat, imgX, imgY, drawW, drawH);
+
+      // Thin border on image
+      doc.setDrawColor(...STEEL);
+      doc.setLineWidth(0.8);
+      doc.roundedRect(imgX, imgY, drawW, drawH, 4, 4, 'S');
+
+      // ── Footer ────────────────────────────────────────────────────────────
+      const FY = PH - FOOTER_H;
+      doc.setFillColor(...NAVY);
+      doc.rect(0, FY, PW, FOOTER_H, 'F');
+
+      doc.setFillColor(...GOLD);
+      doc.rect(0, FY, PW, 3, 'F');
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(...SILVER);
+      doc.text('Practical Building Systems  |  Practical Metals', 36, FY + 22);
+      doc.text('This rendering is for illustrative purposes. Final panel breakout provided upon job confirmation.', 36, FY + 37);
+
+      // Page number right-aligned
+      doc.setTextColor(...STEEL);
+      doc.text('Page 1 of 1', PW - 36, FY + 22, { align: 'right' });
+
+      // ── Save ──────────────────────────────────────────────────────────────
+      const safeNote = note.replace(/[^a-zA-Z0-9_\- ]/g, '').trim().replace(/ /g, '_');
+      const filename = safeNote ? `Practical_Metals_3D_Roof_${safeNote}.pdf` : 'Practical_Metals_3D_Roof_Rendering.pdf';
+      doc.save(filename);
+    }
+
+    function setStatus(msg, isError = false) {
+      statusEl.textContent = msg;
+      statusEl.className = isError ? 'error' : '';
+    }
+  </script>
+</body>
+</html>
