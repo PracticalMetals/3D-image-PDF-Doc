@@ -791,12 +791,16 @@
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
     doc.setTextColor(...BLACK);
-    doc.text('Your Roof - Rendered in 3D', 36, BODY_TOP);
+    const heading   = pageNum === 2 ? 'Your Roof - Slope Outlines' : 'Your Roof - Rendered in 3D';
+    const bodyText  = pageNum === 2
+      ? 'The image below shows all of the slope outlines for your roof. ' +
+        'If you choose to proceed with your Practical Metals order, our team will provide a full panel layout ' +
+        'along with a complete breakdown of panels and trims, tailored specifically for your roof.'
+      : 'The image below is a three-dimensional rendering of your roof generated from your project details. ' +
+        'If you choose to proceed with your Practical Metals order, our team will provide a full panel breakout ' +
+        'including exact panel counts, lengths, and trim details, tailored specifically for your roof.';
 
-    const bodyText =
-      'The image below is a three-dimensional rendering of your roof generated from your project details. ' +
-      'If you choose to proceed with your Practical Metals order, our team will provide a full panel breakout ' +
-      'including exact panel counts, lengths, and trim details, tailored specifically for your roof.';
+    doc.text(heading, 36, BODY_TOP);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(10.5);
