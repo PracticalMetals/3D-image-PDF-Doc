@@ -630,7 +630,7 @@
     for (const item of items) {
       if (item.type.startsWith('image/')) {
         e.preventDefault();
-        loadFile(item.getAsFile());
+        loadFile(item.getAsFile(), imageDataURL ? 2 : 1);
         break;
       }
     }
